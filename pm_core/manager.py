@@ -6,6 +6,7 @@ import json
 import uuid
 from typing import List, Optional
 from datetime import datetime
+from dataclasses import asdict
 
 from .crypto import derive_key, encrypt_data, decrypt_data, generate_salt, apply_hash_argon2
 from .storage import load_vault_file, save_vault_file, SQLiteStorage
@@ -30,7 +31,8 @@ class PasswordManager:
         self.vault = Vault(owner="user")
         
         # Serialize and encrypt vault data
-        vault_json = json.dumps(self.vault.__dict__, default=str)
+        vault_dict = asdict(self.vault)
+        vault_json = json.dumps(vault_dict, default=str)
         encrypted_vault = encrypt_data(vault_json, master_password, self.salt)
         
         # Save encrypted vault to storage
@@ -52,6 +54,9 @@ class PasswordManager:
             
             # Deserialize vault
             vault_dict = json.loads(vault_json)
+            # Reconstruct Entry objects only from dicts
+            if 'entries' in vault_dict:
+                vault_dict['entries'] = [Entry(**e) if isinstance(e, dict) else e for e in vault_dict['entries']]
             self.vault = Vault(**vault_dict)
             
             self.is_unlocked = True
@@ -61,13 +66,9 @@ class PasswordManager:
         except Exception as e:
             raise VaultError(f"Failed to unlock vault: {str(e)}")
 
-    def lock_vault(self, master_password: str = None):
+    def lock_vault(self):
         """Lock vault and wipe sensitive data from memory."""
         if self.vault and self.is_unlocked:
-            # Save current state before locking if master password provided
-            if master_password:
-                self.save_vault(master_password)
-            
             # Wipe sensitive data
             if hasattr(self, 'key'):
                 wipe_memory(self.key)
@@ -81,7 +82,8 @@ class PasswordManager:
             raise VaultError("Vault is not unlocked")
         
         # Serialize and encrypt current vault state
-        vault_json = json.dumps(self.vault.__dict__, default=str)
+        vault_dict = asdict(self.vault)
+        vault_json = json.dumps(vault_dict, default=str)
         
         # Require master password for saving
         if not master_password:
@@ -100,8 +102,12 @@ class PasswordManager:
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
         
-        # Generate unique ID
-        entry_id = len(self.vault.entries) + 1
+        # Generate unique ID - find the highest existing ID and add 1
+        max_id = 0
+        for entry in self.vault.entries:
+            if entry.id > max_id:
+                max_id = entry.id
+        entry_id = max_id + 1
         
         # Create Entry object
         entry = Entry(
@@ -117,15 +123,8 @@ class PasswordManager:
         # Add to Vault
         self.vault.add_entry(entry)
         
-        # Save to disk - note: this will require master password
-        # In a real implementation, you'd want to store the master password securely
-        # or re-prompt the user when needed
-        try:
-            self.save_vault()
-        except ValueError:
-            # If master password not available, just update in memory
-            pass
-        
+        # Note: save_vault requires master password, so we can't auto-save here
+        # The user will need to explicitly save when they have the master password
         return entry
 
     def get_entry(self, service: str = None, entry_id: int = None) -> List[Entry]:
@@ -148,11 +147,7 @@ class PasswordManager:
             raise VaultError("Vault is not unlocked")
         
         self.vault.update_entry(entry_id, **kwargs)
-        try:
-            self.save_vault()
-        except ValueError:
-            # If master password not available, just update in memory
-            pass
+        # Note: save_vault requires master password, so we can't auto-save here
 
     def delete_entry(self, entry_id: int):
         """Remove entry by ID."""
@@ -160,11 +155,7 @@ class PasswordManager:
             raise VaultError("Vault is not unlocked")
         
         self.vault.remove_entry(entry_id)
-        try:
-            self.save_vault()
-        except ValueError:
-            # If master password not available, just update in memory
-            pass
+        # Note: save_vault requires master password, so we can't auto-save here
 
     def search_entries(self, query: str) -> List[Entry]:
         """Search entries by name, username, or notes."""
@@ -218,7 +209,7 @@ class PasswordManager:
             raise VaultError("Vault is not unlocked")
         
         if format_type == "json":
-            return json.dumps([entry.__dict__ for entry in self.vault.entries], default=str, indent=2)
+            return json.dumps([asdict(entry) for entry in self.vault.entries], default=str, indent=2)
         else:
             raise ValueError(f"Unsupported export format: {format_type}")
 

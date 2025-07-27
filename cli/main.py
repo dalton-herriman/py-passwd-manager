@@ -75,6 +75,25 @@ def lock(ctx):
     click.echo("✅ Vault locked")
 
 @cli.command()
+@click.option('--master-password', '-p', prompt=True, hide_input=True,
+              help='Master password for the vault')
+@click.pass_context
+def save(ctx, master_password):
+    """Save the current vault state"""
+    pm = ctx.obj['pm']
+    
+    if not pm.is_unlocked:
+        click.echo("❌ Vault is not unlocked. Use 'unlock' command first.")
+        sys.exit(1)
+    
+    try:
+        pm.save_vault(master_password)
+        click.echo("✅ Vault saved successfully")
+    except Exception as e:
+        click.echo(f"❌ Failed to save vault: {str(e)}")
+        sys.exit(1)
+
+@cli.command()
 @click.option('--service', '-s', required=True, help='Service name (e.g., Gmail, GitHub)')
 @click.option('--username', '-u', help='Username or email')
 @click.option('--password', '-p', help='Password (will prompt if not provided)')

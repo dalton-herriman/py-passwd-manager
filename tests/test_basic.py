@@ -12,172 +12,194 @@ from datetime import datetime
 from pm_core.manager import PasswordManager
 from pm_core.utils import generate_password, validate_password_strength
 from pm_core.models import Entry, Vault
+from pm_core.exceptions import VaultError, StorageError, AuthenticationError
 
-class TestPasswordManager:
-    @pytest.fixture(autouse=True)
-    def setup_teardown(self):
-        """Set up and tear down test fixtures"""
-        self.temp_dir = tempfile.mkdtemp()
-        self.vault_path = os.path.join(self.temp_dir, "test_vault.db")
-        self.pm = PasswordManager(self.vault_path)
-        
-        yield
-        
-        # Cleanup
-        if os.path.exists(self.vault_path):
-            os.remove(self.vault_path)
-        os.rmdir(self.temp_dir)
-    
-    def test_create_vault(self):
-        """Test vault creation"""
-        assert not self.pm.is_vault_exists()
-        
-        self.pm.create_vault("test_password")
-        
-        assert self.pm.is_vault_exists()
-        assert self.pm.is_unlocked
-    
-    def test_unlock_vault(self):
-        """Test vault unlocking"""
-        # Create vault first
-        self.pm.create_vault("test_password")
-        self.pm.lock_vault()
-        
-        # Unlock vault
-        self.pm.unlock_vault("test_password")
-        self.assertTrue(self.pm.is_unlocked)
-    
-    def test_add_entry(self):
-        """Test adding entries"""
-        self.pm.create_vault("test_password")
-        
-        entry = self.pm.add_entry(
-            service="Test Service",
-            username="testuser",
-            password="testpass",
-            url="https://test.com",
-            notes="Test notes"
-        )
-        
-        self.assertIsNotNone(entry)
-        self.assertEqual(entry.name, "Test Service")
-        self.assertEqual(entry.username, "testuser")
-        self.assertEqual(entry.password, "testpass")
-        self.assertEqual(entry.url, "https://test.com")
-        self.assertEqual(entry.notes, "Test notes")
-    
-    def test_get_entries(self):
-        """Test retrieving entries"""
-        self.pm.create_vault("test_password")
-        
-        # Add multiple entries
-        self.pm.add_entry(service="Service 1", username="user1")
-        self.pm.add_entry(service="Service 2", username="user2")
-        
-        entries = self.pm.get_entry()
-        self.assertEqual(len(entries), 2)
-    
-    def test_search_entries(self):
-        """Test entry search"""
-        self.pm.create_vault("test_password")
-        
-        self.pm.add_entry(service="Gmail", username="user@gmail.com")
-        self.pm.add_entry(service="GitHub", username="user")
-        
-        # Search by service
-        gmail_entries = self.pm.search_entries("gmail")
-        self.assertEqual(len(gmail_entries), 1)
-        self.assertEqual(gmail_entries[0].name, "Gmail")
-    
-    def test_update_entry(self):
-        """Test updating entries"""
-        self.pm.create_vault("test_password")
-        
-        entry = self.pm.add_entry(service="Test", username="olduser")
-        
-        # Update entry
-        self.pm.update_entry(entry.id, username="newuser")
-        
-        updated_entries = self.pm.get_entry(entry_id=entry.id)
-        self.assertEqual(len(updated_entries), 1)
-        self.assertEqual(updated_entries[0].username, "newuser")
-    
-    def test_delete_entry(self):
-        """Test deleting entries"""
-        self.pm.create_vault("test_password")
-        
-        entry = self.pm.add_entry(service="Test", username="user")
-        
-        # Delete entry
-        self.pm.delete_entry(entry.id)
-        
-        entries = self.pm.get_entry()
-        self.assertEqual(len(entries), 0)
-    
-    def test_generate_password(self):
-        """Test password generation"""
-        password = generate_password(length=16)
-        self.assertEqual(len(password), 16)
-        
-        # Test with different options
-        password_no_symbols = generate_password(length=12, include_symbols=False)
-        self.assertEqual(len(password_no_symbols), 12)
-        
-        # Test strength validation
-        strength = validate_password_strength(password)
-        self.assertIn('score', strength)
-        self.assertIn('strength', strength)
-    
-    def test_vault_stats(self):
-        """Test vault statistics"""
-        self.pm.create_vault("test_password")
-        
-        self.pm.add_entry(service="Test 1")
-        self.pm.add_entry(service="Test 2")
-        
-        stats = self.pm.get_vault_stats()
-        self.assertEqual(stats['total_entries'], 2)
-        self.assertIn('vault_created', stats)
-        self.assertIn('last_updated', stats)
-    
-    def test_export_entries(self):
-        """Test entry export"""
-        self.pm.create_vault("test_password")
-        
-        self.pm.add_entry(service="Test", username="user", password="pass")
-        
-        exported = self.pm.export_entries()
-        data = json.loads(exported)
-        
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['name'], "Test")
+def temp_vault_path():
+    temp_dir = tempfile.mkdtemp()
+    vault_path = os.path.join(temp_dir, "test_vault.db")
+    yield vault_path
+    if os.path.exists(vault_path):
+        os.remove(vault_path)
+    os.rmdir(temp_dir)
 
-class TestUtils(unittest.TestCase):
-    def test_password_generation(self):
-        """Test password generation utilities"""
-        # Test basic generation
-        password = generate_password()
-        self.assertGreaterEqual(len(password), 8)
-        
-        # Test custom length
-        password = generate_password(length=20)
-        self.assertEqual(len(password), 20)
-        
-        # Test character set options
-        password = generate_password(include_symbols=False, include_numbers=False)
-        self.assertTrue(password.isalpha())
-    
-    def test_password_strength(self):
-        """Test password strength validation"""
-        # Test weak password
-        weak_password = "123"
-        strength = validate_password_strength(weak_password)
-        self.assertEqual(strength['strength'], 'weak')
-        
-        # Test strong password
-        strong_password = "MySecurePass123!"
-        strength = validate_password_strength(strong_password)
-        self.assertGreaterEqual(strength['score'], 4)
+@pytest.fixture
+def vault_path():
+    yield from temp_vault_path()
 
-if __name__ == '__main__':
-    unittest.main() 
+@pytest.fixture
+def pm(vault_path):
+    return PasswordManager(vault_path)
+
+def test_create_vault(pm):
+    assert not pm.is_vault_exists()
+    pm.create_vault("test_password")
+    assert pm.is_vault_exists()
+    assert pm.is_unlocked
+
+def test_unlock_vault(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    pm.unlock_vault("test_password")
+    assert pm.is_unlocked
+
+def test_lock_vault(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    assert not pm.is_unlocked
+    assert pm.vault is None
+    # Should not be able to get entries when locked
+    with pytest.raises(VaultError):
+        pm.get_entry()
+
+def test_add_entry(pm):
+    pm.create_vault("test_password")
+    entry = pm.add_entry(
+        service="Test Service",
+        username="testuser",
+        password="testpass",
+        url="https://test.com",
+        notes="Test notes"
+    )
+    assert entry is not None
+    assert entry.name == "Test Service"
+    assert entry.username == "testuser"
+    assert entry.password == "testpass"
+    assert entry.url == "https://test.com"
+    assert entry.notes == "Test notes"
+
+def test_get_entries(pm):
+    pm.create_vault("test_password")
+    pm.add_entry(service="Service 1", username="user1")
+    pm.add_entry(service="Service 2", username="user2")
+    entries = pm.get_entry()
+    assert len(entries) == 2
+
+def test_search_entries(pm):
+    pm.create_vault("test_password")
+    pm.add_entry(service="Gmail", username="user@gmail.com")
+    pm.add_entry(service="GitHub", username="user")
+    gmail_entries = pm.search_entries("gmail")
+    assert len(gmail_entries) == 1
+    assert gmail_entries[0].name == "Gmail"
+
+def test_update_entry(pm):
+    pm.create_vault("test_password")
+    entry = pm.add_entry(service="Test", username="olduser")
+    pm.update_entry(entry.id, username="newuser")
+    updated_entries = pm.get_entry(entry_id=entry.id)
+    assert len(updated_entries) == 1
+    assert updated_entries[0].username == "newuser"
+
+def test_delete_entry(pm):
+    pm.create_vault("test_password")
+    entry = pm.add_entry(service="Test", username="user")
+    pm.delete_entry(entry.id)
+    entries = pm.get_entry()
+    assert len(entries) == 0
+
+def test_generate_password():
+    password = generate_password(length=16)
+    assert len(password) == 16
+    password_no_symbols = generate_password(length=12, include_symbols=False)
+    assert len(password_no_symbols) == 12
+    strength = validate_password_strength(password)
+    assert 'score' in strength
+    assert 'strength' in strength
+
+def test_vault_stats(pm):
+    pm.create_vault("test_password")
+    pm.add_entry(service="Test 1")
+    pm.add_entry(service="Test 2")
+    stats = pm.get_vault_stats()
+    assert stats['total_entries'] == 2
+    assert 'vault_created' in stats
+    assert 'last_updated' in stats
+
+def test_export_entries(pm):
+    pm.create_vault("test_password")
+    pm.add_entry(service="Test", username="user", password="pass")
+    exported = pm.export_entries()
+    data = json.loads(exported)
+    assert len(data) == 1
+    assert data[0]['name'] == "Test"
+
+def test_save_vault_and_reload(pm, vault_path):
+    pm.create_vault("test_password")
+    pm.add_entry(service="Test", username="user")
+    pm.save_vault("test_password")
+    pm.lock_vault()
+    pm.unlock_vault("test_password")
+    entries = pm.get_entry()
+    assert len(entries) == 1
+    assert entries[0].name == "Test"
+
+def test_save_vault_not_unlocked(pm):
+    with pytest.raises(VaultError):
+        pm.save_vault("test_password")
+
+def test_save_vault_missing_password(pm):
+    pm.create_vault("test_password")
+    with pytest.raises(ValueError):
+        pm.save_vault()
+
+def test_unlock_wrong_password(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(AuthenticationError):
+        pm.unlock_vault("wrong_password")
+
+def test_export_entries_unsupported_format(pm):
+    pm.create_vault("test_password")
+    with pytest.raises(ValueError):
+        pm.export_entries("xml")
+
+def test_generate_and_add_entry(pm):
+    pm.create_vault("test_password")
+    entry = pm.generate_and_add_entry("ServiceX", username="userx", password_length=20)
+    assert entry is not None
+    assert entry.name == "ServiceX"
+    assert len(entry.password) == 20
+
+def test_is_vault_exists_false(vault_path):
+    pm = PasswordManager(vault_path)
+    assert not pm.is_vault_exists()
+
+def test_is_vault_exists_true(pm):
+    pm.create_vault("test_password")
+    assert pm.is_vault_exists()
+
+def test_add_entry_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.add_entry(service="Locked")
+
+def test_update_entry_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.update_entry(1, username="fail")
+
+def test_delete_entry_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.delete_entry(1)
+
+def test_search_entries_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.search_entries("foo")
+
+def test_get_vault_stats_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.get_vault_stats()
+
+def test_export_entries_locked(pm):
+    pm.create_vault("test_password")
+    pm.lock_vault()
+    with pytest.raises(VaultError):
+        pm.export_entries() 

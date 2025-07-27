@@ -73,6 +73,10 @@ class PasswordManagerGUI:
                                   command=self.lock_vault)
         self.lock_btn.pack(side=tk.LEFT, padx=(0, 5))
         
+        self.save_btn = ttk.Button(buttons_frame, text="Save Vault", 
+                                  command=self.save_vault)
+        self.save_btn.pack(side=tk.LEFT, padx=(0, 5))
+        
         self.add_btn = ttk.Button(buttons_frame, text="Add Entry", 
                                  command=self.add_entry)
         self.add_btn.pack(side=tk.LEFT, padx=(0, 5))
@@ -167,6 +171,7 @@ class PasswordManagerGUI:
         state = 'normal' if unlocked else 'disabled'
         self.add_btn.config(state=state)
         self.lock_btn.config(state=state)
+        self.save_btn.config(state=state)
         self.view_btn.config(state=state)
         self.edit_btn.config(state=state)
         self.delete_btn.config(state=state)
@@ -221,6 +226,23 @@ class PasswordManagerGUI:
             messagebox.showinfo("Success", "Vault locked!")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to lock vault: {str(e)}")
+    
+    def save_vault(self):
+        """Save the current vault state to disk"""
+        if not self.pm.is_unlocked:
+            messagebox.showwarning("Warning", "Vault must be unlocked to save.")
+            return
+        
+        password = simpledialog.askstring("Save Vault", "Enter master password:", 
+                                        show='*')
+        if not password:
+            return
+        
+        try:
+            self.pm.save_vault(password)
+            messagebox.showinfo("Success", "Vault saved successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save vault: {str(e)}")
     
     def add_entry(self):
         """Add a new entry"""

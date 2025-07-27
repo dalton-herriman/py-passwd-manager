@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 @dataclass
@@ -16,8 +16,8 @@ class Entry:
     api_key: Optional[str] = None
     url: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def update(self, **kwargs):
         """
@@ -26,7 +26,7 @@ class Entry:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
 @dataclass
 class Vault:
@@ -36,18 +36,18 @@ class Vault:
     """
     owner: str
     entries: List[Entry] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     version: int = 1
     notes: Optional[str] = None
 
     def add_entry(self, entry: Entry):
         self.entries.append(entry)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def remove_entry(self, entry_id: int):
         self.entries = [e for e in self.entries if e.id != entry_id]
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_entry(self, entry_id: int) -> Optional[Entry]:
         for entry in self.entries:
@@ -59,7 +59,7 @@ class Vault:
         entry = self.get_entry(entry_id)
         if entry:
             entry.update(**kwargs)
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
 
 @dataclass
 class Config:

@@ -18,6 +18,10 @@ def generate_password(length: int = 16, include_symbols: bool = True,
     Returns:
         Generated password string
     """
+    # Check that at least one of symbols, numbers, or uppercase is enabled
+    if not (include_symbols or include_numbers or include_uppercase):
+        raise ValueError("At least one character set must be enabled")
+    
     # Define character sets
     lowercase = string.ascii_lowercase
     uppercase = string.ascii_uppercase if include_uppercase else ""
@@ -33,15 +37,44 @@ def generate_password(length: int = 16, include_symbols: bool = True,
     # Generate password
     password = ''.join(secrets.choice(all_chars) for _ in range(length))
     
-    # Ensure password meets minimum requirements
-    if include_uppercase and not any(c.isupper() for c in password):
-        password = secrets.choice(uppercase) + password[1:]
-    if include_numbers and not any(c.isdigit() for c in password):
-        password = password[:-1] + secrets.choice(numbers)
-    if include_symbols and not any(c in symbols for c in password):
-        password = password[:-1] + secrets.choice(symbols)
+    # Ensure password meets minimum requirements by regenerating if needed
+    max_attempts = 10
+    for attempt in range(max_attempts):
+        password = ''.join(secrets.choice(all_chars) for _ in range(length))
+        
+        # Check if password meets all requirements
+        meets_requirements = True
+        
+        if include_uppercase and not any(c.isupper() for c in password):
+            meets_requirements = False
+        if include_numbers and not any(c.isdigit() for c in password):
+            meets_requirements = False
+        if include_symbols and not any(c in symbols for c in password):
+            meets_requirements = False
+        
+        if meets_requirements:
+            return password
     
-    return password
+    # If we couldn't generate a password meeting all requirements in max_attempts,
+    # manually ensure at least one character from each required set
+    password_list = list(password)
+    
+    if include_uppercase and not any(c.isupper() for c in password):
+        # Replace a random character with uppercase
+        pos = secrets.randbelow(length)
+        password_list[pos] = secrets.choice(uppercase)
+    
+    if include_numbers and not any(c.isdigit() for c in password):
+        # Replace a random character with number
+        pos = secrets.randbelow(length)
+        password_list[pos] = secrets.choice(numbers)
+    
+    if include_symbols and not any(c in symbols for c in password):
+        # Replace a random character with symbol
+        pos = secrets.randbelow(length)
+        password_list[pos] = secrets.choice(symbols)
+    
+    return ''.join(password_list)
 
 def clipboard_handler(text: str, timeout: int = 30) -> bool:
     """
@@ -106,12 +139,8 @@ def wipe_memory(data) -> None:
         # But we can help garbage collection
         del data
     elif isinstance(data, bytes):
-        # Overwrite bytes with random data
-        length = len(data)
-        random_bytes = secrets.token_bytes(length)
-        # Try to overwrite the bytes object
-        for i in range(length):
-            data[i:i+1] = random_bytes[i:i+1]
+        # For bytes objects, we can't modify them directly as they're immutable
+        # The best we can do is help with garbage collection
         del data
     elif isinstance(data, list):
         # Recursively wipe list contents

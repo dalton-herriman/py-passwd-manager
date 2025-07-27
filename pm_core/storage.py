@@ -53,16 +53,20 @@ class SQLiteStorage:
 
 def save_vault_file(vault_data: str, salt: str, vault_path: str):
     """Save encrypted vault data and salt to file."""
+    storage = None
     try:
         storage = SQLiteStorage(vault_path)
         storage.set("vault_data", vault_data)
         storage.set("salt", salt)
-        storage.close()
     except Exception as e:
         raise StorageError(f"Failed to save vault: {str(e)}")
+    finally:
+        if storage:
+            storage.close()
 
-def load_vault_file(vault_path: str) -> tuple[str, str]:
+def load_vault_file(vault_path: str) -> tuple:
     """Load encrypted vault data and salt from file."""
+    storage = None
     try:
         if not os.path.exists(vault_path):
             return None, None
@@ -70,11 +74,13 @@ def load_vault_file(vault_path: str) -> tuple[str, str]:
         storage = SQLiteStorage(vault_path)
         vault_data = storage.get("vault_data")
         salt = storage.get("salt")
-        storage.close()
         
         return vault_data, salt
     except Exception as e:
         raise StorageError(f"Failed to load vault: {str(e)}")
+    finally:
+        if storage:
+            storage.close()
 
 def backup_vault(vault_path: str, backup_path: str):
     """Create a backup of the vault."""
@@ -102,13 +108,13 @@ def restore_vault(backup_path: str, vault_path: str):
 
 def get_vault_info(vault_path: str) -> dict:
     """Get information about the vault file."""
+    storage = None
     try:
         if not os.path.exists(vault_path):
             return {"exists": False}
         
         storage = SQLiteStorage(vault_path)
         keys = storage.list_keys()
-        storage.close()
         
         return {
             "exists": True,
@@ -119,3 +125,6 @@ def get_vault_info(vault_path: str) -> dict:
         }
     except Exception as e:
         return {"exists": False, "error": str(e)}
+    finally:
+        if storage:
+            storage.close()
