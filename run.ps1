@@ -24,6 +24,7 @@ function Show-Help {
     Write-Host "  cli          - Run CLI interface"
     Write-Host "  gui          - Run GUI interface"
     Write-Host "  demo         - Run demo script"
+    Write-Host "  demo-multi   - Run Multi-Vault demo script"
     Write-Host ""
     Write-Host "Utility Commands:" -ForegroundColor Yellow
     Write-Host "  clean        - Clean up temporary files"
@@ -91,8 +92,10 @@ function Run-Lint {
 
 function Start-CLI {
     Write-Host "Starting CLI..." -ForegroundColor Green
-    python -m cli.main
+    python -m cli.multi_vault_cli
 }
+
+
 
 function Start-GUI {
     Write-Host "Starting GUI..." -ForegroundColor Green
@@ -102,6 +105,11 @@ function Start-GUI {
 function Run-Demo {
     Write-Host "Running demo..." -ForegroundColor Green
     python scripts/run_tests.py
+}
+
+function Run-MultiVaultDemo {
+    Write-Host "Running Multi-Vault demo..." -ForegroundColor Green
+    python scripts/demo_multi_vault.py
 }
 
 function Clean-Up {
@@ -167,6 +175,7 @@ switch ($Command.ToLower()) {
     "cli" { Start-CLI }
     "gui" { Start-GUI }
     "demo" { Run-Demo }
+    "demo-multi" { Run-MultiVaultDemo }
     "clean" { Clean-Up }
     "check" { Run-Check }
     "install-dev" { Install-Dev }

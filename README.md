@@ -7,6 +7,7 @@ A secure, feature-rich password manager built in Python with both CLI and GUI in
 - 🔐 **Secure Encryption**: Uses Argon2 for key derivation and AES-256 for encryption
 - 💻 **CLI Interface**: Command-line interface for power users
 - 🖥️ **GUI Interface**: User-friendly graphical interface
+- 🗂️ **Multiple Vaults**: Create and manage multiple disconnected vaults
 - 🔍 **Search & Filter**: Find passwords quickly with search functionality
 - 📋 **Clipboard Support**: Easy copy-paste functionality
 - 🔄 **Import/Export**: Support for multiple formats
@@ -36,7 +37,7 @@ A secure, feature-rich password manager built in Python with both CLI and GUI in
 3. **Run the application:**
    ```bash
    # CLI version
-   python -m cli.main
+   python -m cli.multi_vault_cli
    
    # GUI version
    python -m gui.app
@@ -104,12 +105,53 @@ Both scripts support these commands:
 
 ## Usage
 
-### Creating Your First Vault
+### Multi-Vault Mode
 
-1. **Start the application** (CLI or GUI)
-2. **Create a new vault** with a strong master password
-3. **Add your first entry** with a website, username, and password
-4. **Save the vault** to secure storage
+The application now uses a multi-vault system by default, allowing you to create and manage multiple disconnected vaults:
+
+#### Using CLI
+
+```bash
+# Create a new vault
+python -m cli.multi_vault_cli create-vault --name "Personal" --master-password "your_password"
+
+# List all vaults
+python -m cli.multi_vault_cli list-vaults
+
+# Open a vault
+python -m cli.multi_vault_cli open-vault --name "Personal" --master-password "your_password"
+
+# Add an entry to the current vault
+python -m cli.multi_vault_cli add --service "Gmail" --username "user@gmail.com" --password "password123"
+
+# List entries in current vault
+python -m cli.multi_vault_cli list-entries
+
+# Close the current vault
+python -m cli.multi_vault_cli close-vault
+
+# Delete a vault
+python -m cli.multi_vault_cli delete-vault --name "Personal"
+
+# Rename a vault
+python -m cli.multi_vault_cli rename-vault --old-name "Personal" --new-name "Work"
+```
+
+#### Using GUI
+
+1. **Start the GUI**: `python -m gui.app` or `.\run.ps1 gui`
+2. **Create vaults** using the "Create Vault" button
+3. **Select and open vaults** by double-clicking or using "Open Vault"
+4. **Manage entries** within each vault independently
+5. **Switch between vaults** by closing one and opening another
+
+#### Multi-Vault Features
+
+- **Vault Isolation**: Each vault is completely separate and encrypted independently
+- **Vault Management**: Create, rename, delete, backup, and restore vaults
+- **Entry Management**: Add, edit, delete, and search entries within each vault
+- **Vault Registry**: Automatic tracking of all vaults with metadata
+- **Secure Storage**: Each vault is stored as a separate encrypted database file
 
 ### Security Best Practices
 
@@ -153,6 +195,7 @@ The project is organized into several modules:
   - `models.py` - Data models and structures
   - `storage.py` - Vault storage and persistence
   - `manager.py` - Main password manager logic
+  - `vault_manager.py` - Multi-vault management
   - `utils.py` - Utility functions
   - `exceptions.py` - Custom exceptions
 

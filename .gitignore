@@ -62,13 +62,18 @@ Thumbs.db
 .idea/
 *.iml
 
-# Password manager vault files
+# Password manager vault files and directories
+vaults/
 *.db
 vault.db
 *.vault
 
-# Ignore GUI and CLI build artifacts
-gui/__pycache__/
-cli/__pycache__/
-pm_core/__pycache__/
-tests/__pycache__/
+# Test directories (temporary)
+test_*/
+demo_*/
+
+# Pytest cache
+.pytest_cache/
+
+# Module cache directories
+**/__pycache__/
