@@ -93,8 +93,8 @@ def test_basic_imports():
         print("✅ Core imports work")
 
         # Test interface imports
-        from cli.main import cli
-        from gui.app import PasswordManagerGUI
+        from cli.multi_vault_cli import main as cli_main
+        from gui.app import main as gui_main
 
         print("✅ Interface imports work")
 
@@ -142,7 +142,7 @@ def validate_file_permissions():
     critical_files = [
         "pm_core/manager.py",
         "pm_core/crypto.py",
-        "cli/main.py",
+        "cli/multi_vault_cli.py",
         "gui/app.py",
     ]
 

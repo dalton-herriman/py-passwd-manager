@@ -43,65 +43,61 @@ A secure, feature-rich password manager built in Python with both CLI and GUI in
    python -m gui.app
    ```
 
-## Windows Users
+## Cross-Platform Runner
 
-For Windows users, we provide convenient alternatives to the Makefile:
+We provide a unified Python runner that works on all platforms:
 
-### PowerShell Script (Recommended)
+### Python Runner (Recommended)
 
-Use the `run.ps1` script for the most features:
+Use the `run.py` script for all platforms:
 
-```powershell
+```bash
 # Show all available commands
-.\run.ps1 help
+python run.py help
 
 # Quick start with validation
-.\run.ps1 quick-start
+python run.py quick-start
 
 # Run the GUI
-.\run.ps1 gui
+python run.py gui
 
 # Run the CLI
-.\run.ps1 cli
+python run.py cli
 
 # Run tests
-.\run.ps1 test
+python run.py test
 
 # Install dependencies
-.\run.ps1 install
-```
-
-### Batch File
-
-Use the `run.bat` script for simple commands:
-
-```cmd
-# Show all available commands
-run.bat help
-
-# Quick start
-run.bat quick-start
-
-# Run the GUI
-run.bat gui
-
-# Run the CLI
-run.bat cli
+python run.py install
 ```
 
 ### Available Commands
 
-Both scripts support these commands:
+The runner supports these commands:
 
 - `help` - Show available commands
 - `install` - Install dependencies
 - `validate` - Validate project setup
 - `quick-start` - Quick start with validation
 - `test` - Run all tests
+- `test-verbose` - Run tests with verbose output
+- `test-cov` - Run tests with coverage
+- `test-fast` - Run fast tests only
+- `test-security` - Run security tests
+- `test-performance` - Run performance tests
+- `test-parallel` - Run tests in parallel
+- `lint` - Run code linting
 - `cli` - Run CLI interface
 - `gui` - Run GUI interface
+- `demo` - Run demo script
+- `demo-multi` - Run Multi-Vault demo script
 - `clean` - Clean up temporary files
 - `check` - Run all checks (install, validate, test)
+- `install-dev` - Install in development mode
+- `install-prod` - Install in production mode
+- `docs` - Generate documentation
+- `security-check` - Run security checks
+- `full-check` - Run all validations
 
 ## Usage
 
