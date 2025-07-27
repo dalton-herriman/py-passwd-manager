@@ -247,6 +247,10 @@ class MultiVaultPasswordManagerGUI:
         """Refresh the vaults list"""
         try:
             print("DEBUG: refresh_vaults_list called")
+            
+            # Force reload the registry to ensure we have the latest data
+            self.vault_manager.reload_registry()
+            
             vaults = self.vault_manager.list_vaults()
             print(f"DEBUG: Found {len(vaults)} vaults")
 
@@ -277,6 +281,11 @@ class MultiVaultPasswordManagerGUI:
             print(
                 f"DEBUG: Treeview now has {len(self.vaults_tree.get_children())} items"
             )
+            
+            # Force the treeview to update immediately
+            self.vaults_tree.see("")
+            self.vaults_tree.update()
+            
         except Exception as e:
             print(f"DEBUG: Error in refresh_vaults_list: {e}")
             messagebox.showerror("Error", f"Failed to refresh vaults: {str(e)}")
@@ -299,7 +308,45 @@ class MultiVaultPasswordManagerGUI:
         """Create a new vault"""
         dialog = CreateVaultDialog(self.root, self.vault_manager)
         if dialog.result:
-            self.refresh_vaults_list()
+            print("DEBUG: Vault created, forcing complete table redraw")
+            
+            # Force reload the registry to ensure we have the latest data
+            self.vault_manager.reload_registry()
+            
+            # Clear the entire vaults treeview
+            for item in self.vaults_tree.get_children():
+                self.vaults_tree.delete(item)
+            
+            # Force immediate GUI update
+            self.root.update_idletasks()
+            self.root.update()
+            
+            # Get fresh vaults list and rebuild the table
+            vaults = self.vault_manager.list_vaults()
+            print(f"DEBUG: Found {len(vaults)} vaults after creation")
+            
+            # Rebuild the entire table
+            for vault in vaults:
+                status = "🔓 OPEN" if self.vault_manager.get_current_vault_name() == vault.name else "🔒 LOCKED"
+                values = (
+                    vault.name,
+                    status,
+                    vault.entry_count,
+                    vault.created_at.strftime("%Y-%m-%d"),
+                    vault.last_accessed.strftime("%Y-%m-%d"),
+                )
+                print(f"DEBUG: Adding vault to table: {values}")
+                self.vaults_tree.insert("", "end", values=values)
+            
+            # Force the treeview to redraw
+            self.vaults_tree.see("")
+            self.vaults_tree.update()
+            
+            # Force the entire GUI to update again
+            self.root.update_idletasks()
+            self.root.update()
+            
+            print(f"DEBUG: Table redraw completed - {len(self.vaults_tree.get_children())} items")
 
     def delete_vault(self):
         """Delete selected vault"""
@@ -507,10 +554,51 @@ class MultiVaultPasswordManagerGUI:
 
             # Force a complete treeview rebuild after a short delay
             self.root.after(200, self._complete_treeview_rebuild)
+            
+            # Additional forced refresh after a longer delay
+            self.root.after(500, self.refresh_entries)
 
             print("DEBUG: Refresh completed")
         else:
             print("DEBUG: No entry was added (dialog cancelled)")
+
+    def _complete_vaults_tree_rebuild(self):
+        """Completely rebuild the vaults treeview"""
+        try:
+            print("DEBUG: Starting complete vaults tree rebuild")
+            
+            # Force reload the registry to ensure we have the latest data
+            self.vault_manager.reload_registry()
+            
+            # Get fresh vaults list
+            vaults = self.vault_manager.list_vaults()
+            print(f"DEBUG: Rebuild found {len(vaults)} vaults")
+            
+            # Clear treeview
+            for item in self.vaults_tree.get_children():
+                self.vaults_tree.delete(item)
+            
+            # Rebuild treeview
+            for vault in vaults:
+                status = "🔓 OPEN" if self.vault_manager.get_current_vault_name() == vault.name else "🔒 LOCKED"
+                values = (
+                    vault.name,
+                    status,
+                    vault.entry_count,
+                    vault.created_at.strftime("%Y-%m-%d"),
+                    vault.last_accessed.strftime("%Y-%m-%d"),
+                )
+                print(f"DEBUG: Rebuild adding vault: {values}")
+                self.vaults_tree.insert("", "end", values=values)
+            
+            print(f"DEBUG: Vaults rebuild completed - {len(self.vaults_tree.get_children())} items")
+            
+            # Force treeview to redraw
+            self.vaults_tree.see("")
+            self.vaults_tree.update()
+            
+        except Exception as e:
+            print(f"DEBUG: Error in complete vaults rebuild: {e}")
 
     def _complete_treeview_rebuild(self):
         """Completely rebuild the treeview"""
@@ -548,6 +636,136 @@ class MultiVaultPasswordManagerGUI:
 
         except Exception as e:
             print(f"DEBUG: Error in complete rebuild: {e}")
+
+    def refresh_entries(self):
+        """Refresh the entries list"""
+        if not self.vault_manager.get_current_vault():
+            print("DEBUG: No current vault, skipping refresh")
+            return
+
+        try:
+            search_query = self.search_var.get()
+            if search_query:
+                entries = self.vault_manager.get_current_vault().search_entries(
+                    search_query
+                )
+            else:
+                entries = self.vault_manager.get_current_vault().get_entry()
+
+            print(f"DEBUG: refresh_entries found {len(entries)} entries")
+            for entry in entries:
+                print(f"DEBUG: Entry in vault: {entry.name} (ID: {entry.id})")
+
+            self.current_entries = entries
+            
+            # Clear the treeview first
+            for item in self.entries_tree.get_children():
+                self.entries_tree.delete(item)
+            
+            # Update the treeview with fresh data
+            self.update_entries_tree()
+            self.update_stats()
+
+            # Force the treeview to redraw
+            self.entries_tree.see("")  # Scroll to top
+            self.entries_tree.update()
+
+            # Force the entire GUI to process events
+            self.root.after(100, self._force_treeview_update)
+
+            print(
+                f"DEBUG: Treeview now has {len(self.entries_tree.get_children())} items"
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to refresh entries: {str(e)}")
+            print(f"DEBUG: Error in refresh_entries: {e}")
+
+    def _force_treeview_update(self):
+        """Force the treeview to update after a short delay"""
+        try:
+            # Clear and rebuild the treeview
+            for item in self.entries_tree.get_children():
+                self.entries_tree.delete(item)
+
+            # Re-add all entries
+            for entry in self.current_entries:
+                values = (
+                    entry.id,
+                    entry.name,
+                    entry.username or "",
+                    entry.url or "",
+                    entry.created_at.strftime("%Y-%m-%d %H:%M"),
+                )
+                self.entries_tree.insert("", "end", values=values)
+
+            print(
+                f"DEBUG: _force_treeview_update completed - {len(self.entries_tree.get_children())} items"
+            )
+        except Exception as e:
+            print(f"DEBUG: Error in _force_treeview_update: {e}")
+
+    def update_entries_tree(self):
+        """Update the entries treeview"""
+        # Clear existing items
+        for item in self.entries_tree.get_children():
+            self.entries_tree.delete(item)
+
+        print(
+            f"DEBUG: update_entries_tree processing {len(self.current_entries)} entries"
+        )
+
+        # Add entries
+        for entry in self.current_entries:
+            values = (
+                entry.id,
+                entry.name,
+                entry.username or "",
+                entry.url or "",
+                entry.created_at.strftime("%Y-%m-%d %H:%M"),
+            )
+            print(f"DEBUG: Adding entry to tree: {values}")
+            self.entries_tree.insert("", "end", values=values)
+
+        print(f"DEBUG: Treeview now has {len(self.entries_tree.get_children())} items")
+        
+        # Force the treeview to update immediately
+        self.entries_tree.see("")
+        self.entries_tree.update()
+
+    def update_stats(self):
+        """Update statistics display"""
+        if self.vault_manager.get_current_vault():
+            try:
+                stats = self.vault_manager.get_current_vault().get_vault_stats()
+                vault_name = self.vault_manager.get_current_vault_name()
+                self.stats_label.config(
+                    text=f"Vault: {vault_name} | Total entries: {stats['total_entries']} | "
+                    f"Last updated: {stats['last_updated'].strftime('%Y-%m-%d %H:%M')}"
+                )
+            except:
+                self.stats_label.config(text="")
+        else:
+            self.stats_label.config(text="")
+
+    def clear_entries(self):
+        """Clear the entries display"""
+        for item in self.entries_tree.get_children():
+            self.entries_tree.delete(item)
+        self.current_entries = []
+
+    def show_entry_details(self, entry):
+        """Show detailed information about an entry"""
+        details = f"""
+Entry Details:
+- ID: {entry.id}
+- Service: {entry.name}
+- Username: {entry.username or 'N/A'}
+- URL: {entry.url or 'N/A'}
+- Notes: {entry.notes or 'N/A'}
+- Created: {entry.created_at.strftime('%Y-%m-%d %H:%M')}
+- Updated: {entry.updated_at.strftime('%Y-%m-%d %H:%M')}
+"""
+        messagebox.showinfo("Entry Details", details)
 
     def view_entry(self):
         """View selected entry details"""
@@ -730,130 +948,6 @@ class MultiVaultPasswordManagerGUI:
         """Handle search text change"""
         self.refresh_entries()
 
-    def refresh_entries(self):
-        """Refresh the entries list"""
-        if not self.vault_manager.get_current_vault():
-            print("DEBUG: No current vault, skipping refresh")
-            return
-
-        try:
-            search_query = self.search_var.get()
-            if search_query:
-                entries = self.vault_manager.get_current_vault().search_entries(
-                    search_query
-                )
-            else:
-                entries = self.vault_manager.get_current_vault().get_entry()
-
-            print(f"DEBUG: refresh_entries found {len(entries)} entries")
-            for entry in entries:
-                print(f"DEBUG: Entry in vault: {entry.name} (ID: {entry.id})")
-
-            self.current_entries = entries
-            self.update_entries_tree()
-            self.update_stats()
-
-            # Force the treeview to redraw
-            self.entries_tree.see("")  # Scroll to top
-            self.entries_tree.update()
-
-            # Force the entire GUI to process events
-            self.root.after(100, self._force_treeview_update)
-
-            print(
-                f"DEBUG: Treeview now has {len(self.entries_tree.get_children())} items"
-            )
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to refresh entries: {str(e)}")
-            print(f"DEBUG: Error in refresh_entries: {e}")
-
-    def _force_treeview_update(self):
-        """Force the treeview to update after a short delay"""
-        try:
-            # Clear and rebuild the treeview
-            for item in self.entries_tree.get_children():
-                self.entries_tree.delete(item)
-
-            # Re-add all entries
-            for entry in self.current_entries:
-                values = (
-                    entry.id,
-                    entry.name,
-                    entry.username or "",
-                    entry.url or "",
-                    entry.created_at.strftime("%Y-%m-%d %H:%M"),
-                )
-                self.entries_tree.insert("", "end", values=values)
-
-            print(
-                f"DEBUG: _force_treeview_update completed - {len(self.entries_tree.get_children())} items"
-            )
-        except Exception as e:
-            print(f"DEBUG: Error in _force_treeview_update: {e}")
-
-    def update_entries_tree(self):
-        """Update the entries treeview"""
-        # Clear existing items
-        for item in self.entries_tree.get_children():
-            self.entries_tree.delete(item)
-
-        print(
-            f"DEBUG: update_entries_tree processing {len(self.current_entries)} entries"
-        )
-
-        # Add entries
-        for entry in self.current_entries:
-            values = (
-                entry.id,
-                entry.name,
-                entry.username or "",
-                entry.url or "",
-                entry.created_at.strftime("%Y-%m-%d %H:%M"),
-            )
-            print(f"DEBUG: Adding entry to tree: {values}")
-            self.entries_tree.insert("", "end", values=values)
-
-        print(f"DEBUG: Treeview now has {len(self.entries_tree.get_children())} items")
-
-    def update_stats(self):
-        """Update statistics display"""
-        if self.vault_manager.get_current_vault():
-            try:
-                stats = self.vault_manager.get_current_vault().get_vault_stats()
-                vault_name = self.vault_manager.get_current_vault_name()
-                self.stats_label.config(
-                    text=f"Vault: {vault_name} | Total entries: {stats['total_entries']} | "
-                    f"Last updated: {stats['last_updated'].strftime('%Y-%m-%d %H:%M')}"
-                )
-            except:
-                self.stats_label.config(text="")
-        else:
-            self.stats_label.config(text="")
-
-    def clear_entries(self):
-        """Clear the entries list"""
-        for item in self.entries_tree.get_children():
-            self.entries_tree.delete(item)
-        self.current_entries = []
-        self.stats_label.config(text="")
-
-    def show_entry_details(self, entry):
-        """Show detailed entry information"""
-        details = f"""
-Entry Details (ID: {entry.id})
-
-Service: {entry.name}
-Username: {entry.username or 'N/A'}
-Password: {'*' * len(entry.password) if entry.password else 'N/A'}
-URL: {entry.url or 'N/A'}
-Notes: {entry.notes or 'N/A'}
-
-Created: {entry.created_at}
-Updated: {entry.updated_at}
-        """
-
-        messagebox.showinfo("Entry Details", details)
-
 
 class CreateVaultDialog:
     def __init__(self, parent, vault_manager):
@@ -941,11 +1035,14 @@ class CreateVaultDialog:
             return
 
         try:
+            print(f"DEBUG: CreateVaultDialog creating vault: {name}")
             self.vault_manager.create_vault(name, password, description)
+            print(f"DEBUG: CreateVaultDialog vault created successfully: {name}")
             self.result = True
             self.dialog.destroy()
             messagebox.showinfo("Success", f"Vault '{name}' created successfully!")
         except Exception as e:
+            print(f"DEBUG: CreateVaultDialog error: {e}")
             messagebox.showerror("Error", f"Failed to create vault: {str(e)}")
 
     def cancel(self):

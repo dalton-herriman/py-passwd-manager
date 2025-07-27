@@ -119,6 +119,10 @@ class VaultManager:
 
         return True
 
+    def reload_registry(self):
+        """Force reload the vault registry from disk."""
+        self._load_registry()
+
     def list_vaults(self) -> List[VaultInfo]:
         """List all available vaults."""
         # Update entry counts
