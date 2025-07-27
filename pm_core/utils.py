@@ -168,6 +168,14 @@ def validate_password_strength(password: str) -> dict:
     score = 0
     feedback = []
     
+    # Handle None and non-string inputs
+    if password is None or not isinstance(password, str):
+        return {
+            "score": 0,
+            "strength": "weak",
+            "feedback": ["Password must be a string"]
+        }
+    
     if len(password) >= 8:
         score += 1
     else:
