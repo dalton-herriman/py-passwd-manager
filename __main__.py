@@ -50,7 +50,7 @@ Examples:
     else:
         # Launch CLI with remaining arguments
         try:
-            from cli.main import main as cli_main
+            from cli.multi_vault_cli import main as cli_main
 
             # Set up sys.argv for Click
             sys.argv = [sys.argv[0]] + remaining

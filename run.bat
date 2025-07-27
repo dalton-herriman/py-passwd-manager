@@ -60,7 +60,7 @@ goto end
 
 :cli
 echo Starting CLI...
-python -m cli.main
+python -m cli.multi_vault_cli
 goto end
 
 :gui

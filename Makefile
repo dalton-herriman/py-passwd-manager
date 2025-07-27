@@ -78,7 +78,7 @@ lint:
 # Run commands
 cli:
 	@echo "💻 Starting CLI..."
-	python -m cli.main
+	python -m cli.multi_vault_cli
 
 gui:
 	@echo "🖥️  Starting GUI..."
