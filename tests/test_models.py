@@ -2,6 +2,7 @@ import pytest
 from pm_core.models import Entry, Vault, Config
 from datetime import datetime, timezone
 
+
 def test_entry_update():
     e = Entry(id=1, name="Service", username="u", password="p")
     old_updated = e.updated_at
@@ -9,6 +10,7 @@ def test_entry_update():
     assert e.username == "newu"
     assert e.password == "newp"
     assert e.updated_at > old_updated
+
 
 def test_vault_add_remove_get_update_entry():
     v = Vault(owner="me")
@@ -26,6 +28,7 @@ def test_vault_add_remove_get_update_entry():
     assert v.get_entry(2).name == "BB"
     assert v.get_entry(2).notes == "note"
 
+
 def test_vault_metadata():
     v = Vault(owner="me")
     assert v.owner == "me"
@@ -33,6 +36,7 @@ def test_vault_metadata():
     assert isinstance(v.updated_at, datetime)
     assert v.version == 1
     assert v.notes is None
+
 
 def test_config_defaults():
     c = Config()
@@ -43,4 +47,4 @@ def test_config_defaults():
     assert c.theme is None
     assert c.last_opened is None
     assert c.backup_enabled is False
-    assert c.backup_path is None 
+    assert c.backup_path is None

@@ -1,7 +1,7 @@
-
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional
+
 
 @dataclass
 class Entry:
@@ -9,6 +9,7 @@ class Entry:
     Represents a single entry in the password manager database.
     Can be a password, account credentials, API key, etc.
     """
+
     id: int
     name: str  # e.g., "Gmail", "AWS", "GitHub"
     username: Optional[str] = None
@@ -28,12 +29,14 @@ class Entry:
                 setattr(self, key, value)
         self.updated_at = datetime.now(timezone.utc)
 
+
 @dataclass
 class Vault:
     """
     Represents the entire password vault.
     Contains all entries and vault-level metadata.
     """
+
     owner: str
     entries: List[Entry] = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -61,11 +64,13 @@ class Vault:
             entry.update(**kwargs)
             self.updated_at = datetime.now(timezone.utc)
 
+
 @dataclass
 class Config:
     """
     Represents application configuration settings.
     """
+
     db_path: str = "pm_data.db"
     encryption_enabled: bool = True
     default_vault_path: Optional[str] = None

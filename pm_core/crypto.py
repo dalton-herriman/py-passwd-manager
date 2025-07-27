@@ -4,23 +4,28 @@ from argon2.low_level import hash_secret_raw, Type
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .exceptions import CryptoError
 
-'''
+"""
 Everything related to encryption, 
 decryption and key management
-'''
+"""
+
 
 def generate_salt():
     salt_phrase = os.urandom(16).hex()
     return salt_phrase
 
+
 def apply_salt(input_string):
     salt = generate_salt()
     return f"{salt}:{input_string}"
 
+
 def apply_hash_argon2(input_string):
     from argon2 import PasswordHasher
+
     ph = PasswordHasher()
     return ph.hash(input_string)
+
 
 def derive_key(master_password: str, salt: str) -> bytes:
     """
@@ -42,9 +47,10 @@ def derive_key(master_password: str, salt: str) -> bytes:
         memory_cost=65536,
         parallelism=1,
         hash_len=32,
-        type=Type.ID
+        type=Type.ID,
     )
     return key
+
 
 def encrypt_data(data, master_password: str, salt: str):
     """
@@ -57,7 +63,7 @@ def encrypt_data(data, master_password: str, salt: str):
     try:
         if isinstance(data, str):
             data = data.encode("utf-8")
-        
+
         # Derive key using Argon2id
         derived_key = derive_key(master_password, salt)
         aesgcm = AESGCM(derived_key)
@@ -68,6 +74,7 @@ def encrypt_data(data, master_password: str, salt: str):
         return encrypted
     except Exception as e:
         raise CryptoError(f"Encryption failed: {str(e)}")
+
 
 def decrypt_data(data, master_password: str, salt: str):
     """

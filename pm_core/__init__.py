@@ -17,7 +17,7 @@ from .exceptions import (
     StorageError,
     ValidationError,
     AuthenticationError,
-    ConfigurationError
+    ConfigurationError,
 )
 from .crypto import (
     generate_salt,
@@ -25,14 +25,14 @@ from .crypto import (
     apply_hash_argon2,
     derive_key,
     encrypt_data,
-    decrypt_data
+    decrypt_data,
 )
 from .utils import (
     generate_password,
     clipboard_handler,
     wipe_memory,
     validate_password_strength,
-    get_system_info
+    get_system_info,
 )
 from .storage import (
     SQLiteStorage,
@@ -40,36 +40,36 @@ from .storage import (
     load_vault_file,
     backup_vault,
     restore_vault,
-    get_vault_info
+    get_vault_info,
 )
 
 __all__ = [
-    'PasswordManager',
-    'Entry',
-    'Vault', 
-    'Config',
-    'PasswordManagerError',
-    'VaultError',
-    'CryptoError',
-    'StorageError',
-    'ValidationError',
-    'AuthenticationError',
-    'ConfigurationError',
-    'generate_salt',
-    'apply_salt',
-    'apply_hash_argon2',
-    'derive_key',
-    'encrypt_data',
-    'decrypt_data',
-    'generate_password',
-    'clipboard_handler',
-    'wipe_memory',
-    'validate_password_strength',
-    'get_system_info',
-    'SQLiteStorage',
-    'save_vault_file',
-    'load_vault_file',
-    'backup_vault',
-    'restore_vault',
-    'get_vault_info'
+    "PasswordManager",
+    "Entry",
+    "Vault",
+    "Config",
+    "PasswordManagerError",
+    "VaultError",
+    "CryptoError",
+    "StorageError",
+    "ValidationError",
+    "AuthenticationError",
+    "ConfigurationError",
+    "generate_salt",
+    "apply_salt",
+    "apply_hash_argon2",
+    "derive_key",
+    "encrypt_data",
+    "decrypt_data",
+    "generate_password",
+    "clipboard_handler",
+    "wipe_memory",
+    "validate_password_strength",
+    "get_system_info",
+    "SQLiteStorage",
+    "save_vault_file",
+    "load_vault_file",
+    "backup_vault",
+    "restore_vault",
+    "get_vault_info",
 ]

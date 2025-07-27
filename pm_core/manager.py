@@ -8,36 +8,43 @@ from typing import List, Optional
 from datetime import datetime
 from dataclasses import asdict
 
-from .crypto import derive_key, encrypt_data, decrypt_data, generate_salt, apply_hash_argon2
+from .crypto import (
+    derive_key,
+    encrypt_data,
+    decrypt_data,
+    generate_salt,
+    apply_hash_argon2,
+)
 from .storage import load_vault_file, save_vault_file, SQLiteStorage
 from .models import Vault, Entry
 from .utils import generate_password, wipe_memory
 from .exceptions import VaultError, CryptoError, StorageError, AuthenticationError
 
+
 class PasswordManager:
     def __init__(self, vault_path: str):
         self.vault_path = vault_path
-        self.vault = None        # In-memory Vault object
-        self.key = None          # Derived key for encryption
-        self.salt = None         # Stored salt for KDF
-        self.is_unlocked = False # Track vault state
+        self.vault = None  # In-memory Vault object
+        self.key = None  # Derived key for encryption
+        self.salt = None  # Stored salt for KDF
+        self.is_unlocked = False  # Track vault state
 
     def create_vault(self, master_password: str):
         """Create a new vault with a master password."""
         # Generate salt
         self.salt = generate_salt()
-        
+
         # Create new vault
         self.vault = Vault(owner="user")
-        
+
         # Serialize and encrypt vault data
         vault_dict = asdict(self.vault)
         vault_json = json.dumps(vault_dict, default=str)
         encrypted_vault = encrypt_data(vault_json, master_password, self.salt)
-        
+
         # Save encrypted vault to storage
         save_vault_file(encrypted_vault, self.salt, self.vault_path)
-        
+
         self.is_unlocked = True
 
     def unlock_vault(self, master_password: str):
@@ -45,20 +52,23 @@ class PasswordManager:
         try:
             # Load encrypted vault data and salt
             encrypted_vault, self.salt = load_vault_file(self.vault_path)
-            
+
             if not encrypted_vault or not self.salt:
                 raise VaultError("Vault file not found or corrupted")
-            
+
             # Decrypt vault data
             vault_json = decrypt_data(encrypted_vault, master_password, self.salt)
-            
+
             # Deserialize vault
             vault_dict = json.loads(vault_json)
             # Reconstruct Entry objects only from dicts
-            if 'entries' in vault_dict:
-                vault_dict['entries'] = [Entry(**e) if isinstance(e, dict) else e for e in vault_dict['entries']]
+            if "entries" in vault_dict:
+                vault_dict["entries"] = [
+                    Entry(**e) if isinstance(e, dict) else e
+                    for e in vault_dict["entries"]
+                ]
             self.vault = Vault(**vault_dict)
-            
+
             self.is_unlocked = True
             return True
         except (CryptoError, StorageError) as e:
@@ -70,7 +80,7 @@ class PasswordManager:
         """Lock vault and wipe sensitive data from memory."""
         if self.vault and self.is_unlocked:
             # Wipe sensitive data
-            if hasattr(self, 'key'):
+            if hasattr(self, "key"):
                 wipe_memory(self.key)
             self.key = None
             self.vault = None
@@ -80,15 +90,15 @@ class PasswordManager:
         """Save the current vault state to disk."""
         if not self.vault or not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         # Serialize and encrypt current vault state
         vault_dict = asdict(self.vault)
         vault_json = json.dumps(vault_dict, default=str)
-        
+
         # Require master password for saving
         if not master_password:
             raise ValueError("Master password is required to save vault")
-        
+
         try:
             encrypted_vault = encrypt_data(vault_json, master_password, self.salt)
             # Save encrypted vault to storage
@@ -96,19 +106,26 @@ class PasswordManager:
         except Exception as e:
             raise StorageError(f"Failed to save vault: {str(e)}")
 
-    def add_entry(self, service: str, username: str = None, password: str = None, 
-                  api_key: str = None, url: str = None, notes: str = ""):
+    def add_entry(
+        self,
+        service: str,
+        username: str = None,
+        password: str = None,
+        api_key: str = None,
+        url: str = None,
+        notes: str = "",
+    ):
         """Add a new password entry."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         # Generate unique ID - find the highest existing ID and add 1
         max_id = 0
         for entry in self.vault.entries:
             if entry.id > max_id:
                 max_id = entry.id
         entry_id = max_id + 1
-        
+
         # Create Entry object
         entry = Entry(
             id=entry_id,
@@ -117,12 +134,12 @@ class PasswordManager:
             password=password,
             api_key=api_key,
             url=url,
-            notes=notes
+            notes=notes,
         )
-        
+
         # Add to Vault
         self.vault.add_entry(entry)
-        
+
         # Note: save_vault requires master password, so we can't auto-save here
         # The user will need to explicitly save when they have the master password
         return entry
@@ -131,21 +148,21 @@ class PasswordManager:
         """Retrieve entries matching criteria."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         if entry_id is not None:
             entry = self.vault.get_entry(entry_id)
             return [entry] if entry else []
-        
+
         if service:
             return [e for e in self.vault.entries if service.lower() in e.name.lower()]
-        
+
         return self.vault.entries
 
     def update_entry(self, entry_id: int, **kwargs):
         """Update fields of an existing entry."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         self.vault.update_entry(entry_id, **kwargs)
         # Note: save_vault requires master password, so we can't auto-save here
 
@@ -153,7 +170,7 @@ class PasswordManager:
         """Remove entry by ID."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         self.vault.remove_entry(entry_id)
         # Note: save_vault requires master password, so we can't auto-save here
 
@@ -161,55 +178,65 @@ class PasswordManager:
         """Search entries by name, username, or notes."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         query = query.lower()
         results = []
-        
+
         for entry in self.vault.entries:
-            if (query in entry.name.lower() or 
-                (entry.username and query in entry.username.lower()) or
-                (entry.notes and query in entry.notes.lower())):
+            if (
+                query in entry.name.lower()
+                or (entry.username and query in entry.username.lower())
+                or (entry.notes and query in entry.notes.lower())
+            ):
                 results.append(entry)
-        
+
         return results
 
-    def generate_and_add_entry(self, service: str, username: str = None, 
-                              password_length: int = 16, url: str = None, notes: str = ""):
+    def generate_and_add_entry(
+        self,
+        service: str,
+        username: str = None,
+        password_length: int = 16,
+        url: str = None,
+        notes: str = "",
+    ):
         """Generate a secure password and add entry."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         # Generate secure password
         generated_password = generate_password(password_length)
-        
+
         # Add entry with generated password
         return self.add_entry(
             service=service,
             username=username,
             password=generated_password,
             url=url,
-            notes=notes
+            notes=notes,
         )
 
     def get_vault_stats(self) -> dict:
         """Get vault statistics."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         return {
             "total_entries": len(self.vault.entries),
             "vault_created": self.vault.created_at,
             "last_updated": self.vault.updated_at,
-            "vault_version": self.vault.version
+            "vault_version": self.vault.version,
         }
 
     def export_entries(self, format_type: str = "json") -> str:
         """Export entries in specified format."""
         if not self.is_unlocked:
             raise VaultError("Vault is not unlocked")
-        
+
         if format_type == "json":
-            return json.dumps([asdict(entry) for entry in self.vault.entries], default=str, indent=2)
+            return json.dumps(
+                [asdict(entry) for entry in self.vault.entries], default=str, indent=2
+            )
         else:
             raise ValueError(f"Unsupported export format: {format_type}")
 
