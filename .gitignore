@@ -62,9 +62,13 @@ Thumbs.db
 .idea/
 *.iml
 
-# Ignore run artifacts
-run.py
+# Password manager vault files
+*.db
+vault.db
+*.vault
 
 # Ignore GUI and CLI build artifacts
 gui/__pycache__/
 cli/__pycache__/
+pm_core/__pycache__/
+tests/__pycache__/
