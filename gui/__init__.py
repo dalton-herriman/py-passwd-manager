@@ -1,9 +1,35 @@
+#!/usr/bin/env python3
 """
-Password Manager GUI Package
-
-This package contains the graphical user interface for the password manager.
+GUI package for the Password Manager
+Modular components for better organization
 """
 
-from .app import main
+from .main_app import MultiVaultPasswordManagerGUI
+from .dialogs import (
+    CreateVaultDialog,
+    AddEntryDialog,
+    EditEntryDialog,
+    GeneratePasswordDialog
+)
+from .components import (
+    SearchBox,
+    StatusBar,
+    ToolBar,
+    TreeViewManager,
+    DialogBase
+)
+from .events import EventHandler
 
-__all__ = ["main"]
+__all__ = [
+    'MultiVaultPasswordManagerGUI',
+    'CreateVaultDialog',
+    'AddEntryDialog', 
+    'EditEntryDialog',
+    'GeneratePasswordDialog',
+    'SearchBox',
+    'StatusBar',
+    'ToolBar',
+    'TreeViewManager',
+    'DialogBase',
+    'EventHandler'
+]
