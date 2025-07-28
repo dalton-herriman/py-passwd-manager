@@ -105,7 +105,16 @@ class RunCommands:
     def start_gui(self, args: List[str] = None) -> bool:
         """Start GUI interface"""
         print("🖥️  Starting GUI...")
-        cmd = [sys.executable, "-m", "gui.app"]
+        
+        # Check if PySide6 is available, otherwise fall back to Tkinter
+        try:
+            import PySide6
+            print("Using PySide6 GUI (modern)")
+            cmd = [sys.executable, "-m", "gui.app_pyside"]
+        except ImportError:
+            print("Using Tkinter GUI (fallback)")
+            cmd = [sys.executable, "-m", "gui.app"]
+        
         return self.registry.run_subprocess(cmd)
         
     def run_demo(self, args: List[str] = None) -> bool:
