@@ -89,7 +89,7 @@ class MultiVaultPasswordManagerGUI:
         self.vault_toolbar.add_separator()
         self.vault_toolbar.add_button("Rename", self.event_handler.rename_vault)
         self.vault_toolbar.add_button("Backup", self.event_handler.backup_vault)
-        self.vault_toolbar.pack(fill=tk.X, pady=(0, 10))
+        self.vault_toolbar.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Vaults list
         vaults_list_frame = ttk.Frame(vaults_frame)
@@ -136,15 +136,15 @@ class MultiVaultPasswordManagerGUI:
         self.entries_toolbar.add_separator()
         self.entries_toolbar.add_button("Copy Password", self.event_handler.copy_password)
         self.entries_toolbar.add_button("Generate", self.event_handler.generate_password)
-        self.entries_toolbar.pack(fill=tk.X, pady=(0, 10))
+        self.entries_toolbar.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Search box
         self.search_box = SearchBox(entries_frame, command=self.event_handler.on_search_change)
-        self.search_box.pack(fill=tk.X, pady=(0, 10))
+        self.search_box.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # Entries list
         entries_list_frame = ttk.Frame(entries_frame)
-        entries_list_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        entries_list_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         entries_list_frame.columnconfigure(0, weight=1)
         entries_list_frame.rowconfigure(0, weight=1)
         
