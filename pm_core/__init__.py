@@ -9,7 +9,7 @@ __version__ = "1.0.0"
 __author__ = "Password Manager Team"
 
 from .manager import PasswordManager
-from .models import Entry, Vault, Config
+from .models_pydantic import Entry, Vault, Config
 from .exceptions import (
     PasswordManagerError,
     VaultError,

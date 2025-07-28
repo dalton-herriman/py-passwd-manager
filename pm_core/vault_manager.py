@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .manager import PasswordManager
 from .exceptions import VaultError, StorageError
-from .models import Vault, Entry
+from .models_pydantic import Vault, Entry
 
 
 class VaultInfo:

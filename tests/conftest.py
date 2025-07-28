@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from pm_core.manager import PasswordManager
-from pm_core.models import Entry, Vault, Config
+from pm_core.models_pydantic import Entry, Vault, Config
 
 
 @pytest.fixture(scope="session")

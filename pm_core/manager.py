@@ -16,7 +16,7 @@ from .crypto import (
     apply_hash_argon2,
 )
 from .storage import load_vault_file, save_vault_file, SQLiteStorage
-from .models import Vault, Entry
+from .models_pydantic import Vault, Entry
 from .utils import generate_password, wipe_memory
 from .exceptions import VaultError, CryptoError, StorageError, AuthenticationError
 
@@ -38,7 +38,7 @@ class PasswordManager:
         self.vault = Vault(owner="user")
 
         # Serialize and encrypt vault data
-        vault_dict = asdict(self.vault)
+        vault_dict = self.vault.model_dump()
         vault_json = json.dumps(vault_dict, default=str)
         encrypted_vault = encrypt_data(vault_json, master_password, self.salt)
 
@@ -92,7 +92,7 @@ class PasswordManager:
             raise VaultError("Vault is not unlocked")
 
         # Serialize and encrypt current vault state
-        vault_dict = asdict(self.vault)
+        vault_dict = self.vault.model_dump()
         vault_json = json.dumps(vault_dict, default=str)
 
         # Require master password for saving

@@ -11,7 +11,7 @@ from datetime import datetime
 
 from pm_core.manager import PasswordManager
 from pm_core.utils import generate_password, validate_password_strength
-from pm_core.models import Entry, Vault
+from pm_core.models_pydantic import Entry, Vault
 from pm_core.exceptions import VaultError, StorageError, AuthenticationError
 
 

@@ -1,9 +1,8 @@
+#!/usr/bin/env python3
 """
-Password Manager CLI Package
-
-This package contains the command-line interface for the password manager.
+CLI package for the Password Manager
 """
 
-from .main import main
+from .typer_cli import app as typer_app
 
-__all__ = ["main"]
+__all__ = ['typer_app']
